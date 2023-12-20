@@ -63,15 +63,15 @@
             /// <param name="domainStep"></param>
             /// <param name="batchSize"></param>
             /// <returns></returns>
-            public Builder AddStep(Func<IList<Message>, Task<IList<Message>>> domainStep, int batchSize = 10)
+            public Builder AddStep(Func<IList<Message>, Task<IList<Message>>> domainStep, int batchSize = 10, int delay = 0)
             {
                 if (_rootStep == null)
                 {
-                    _rootStep = new PipelineStep(domainStep, batchSize);
+                    _rootStep = new PipelineStep(domainStep, batchSize, delay);
                     _currentStep = _rootStep;
                     return this;
                 }
-                var nextStep = new PipelineStep(domainStep, batchSize);
+                var nextStep = new PipelineStep(domainStep, batchSize, delay);
                 _currentStep.AddNextStep(nextStep);
                 _currentStep = nextStep;
                 return this;

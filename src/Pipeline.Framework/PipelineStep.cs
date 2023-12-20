@@ -12,16 +12,18 @@ namespace Pipeline.Framework
         private readonly Func<IList<Message>, Task<IList<Message>>> _domainStep;
         private readonly Task _completionTask;
         private readonly Channel<Message> _channel;
+        private readonly int _delay;
         private PipelineStep _nextStep;
 
         /// <summary>
         /// 
         /// </summary>
-        internal PipelineStep(Func<IList<Message>, Task<IList<Message>>> domainStep, int batchSize)
+        internal PipelineStep(Func<IList<Message>, Task<IList<Message>>> domainStep, int batchSize = 10, int delay = 0)
         {
             _channel = Channel.CreateUnbounded<Message>();
             _batchSize = batchSize;
             _domainStep = domainStep;
+            _delay = delay;
             _completionTask = CreateChannelReaderTask();
         }
 
@@ -33,6 +35,7 @@ namespace Pipeline.Framework
         {
             return Task.Run(async () =>
             {
+                var batchNumber = 1;
                 var messageBatch = new List<Message>(); 
                 var readerCompletion = _channel.Reader.Completion;
                 while (!readerCompletion.IsCompleted)
@@ -44,8 +47,16 @@ namespace Pipeline.Framework
                         {
                             continue;
                         }
-                        await _domainStep(messageBatch);
+                        await Task.Delay(_delay);
+                        Console.WriteLine($"Begin batch number : {batchNumber}");
+                        var processedMessages = await _domainStep(messageBatch);
+                        Console.WriteLine($"End batch number : {batchNumber}");
+                        if (_nextStep != null)
+                        {
+                            await _nextStep.ProcessMessagesAsync(processedMessages);
+                        }
                         messageBatch = new List<Message>();
+                        batchNumber += 1;
                     }
                 }
             });
@@ -57,9 +68,9 @@ namespace Pipeline.Framework
         /// <param name="domainStep"></param>
         /// <param name="batchSize"></param>
         /// <returns></returns>
-        internal PipelineStep AddNextStep(Func<IList<Message>, Task<IList<Message>>> domainStep, int batchSize)
+        internal PipelineStep AddNextStep(Func<IList<Message>, Task<IList<Message>>> domainStep, int batchSize, int delay = 0)
         {
-            var step = new PipelineStep(domainStep, batchSize);
+            var step = new PipelineStep(domainStep, batchSize, delay);
             return AddNextStep(step);
         }
 

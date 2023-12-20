@@ -17,12 +17,12 @@ Task<IList<Message>> DomainStepTwo(IList<Message> messages)
 
 var pipeline = new Pipeline.Framework.Pipeline.Builder()
     .Name("Employee Pipeline")
-    .AddStep(DomainStepOne, 20)
-    .AddStep(DomainStepTwo, 30)
+    .AddStep(DomainStepOne, 20, 5000)
+    .AddStep(DomainStepTwo, 30, 10000)
     .Build();
 
 var messages = new List<Message>();
-var count = 1000;
+var count = 100000;
 while (count > 0)
 {
     messages.Add(new Message());
